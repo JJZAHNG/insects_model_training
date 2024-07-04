@@ -5,7 +5,8 @@ import numpy as np
 net = cv2.dnn.readNet("models/yolov3.weights", "models/yolov3.cfg")
 layer_names = net.getLayerNames()
 output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
-with open("models/insects.names", "r") as f:
+# with open("models/insects.names", "r") as f:
+with open("models/coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
 
 def preprocess_image(image):
@@ -58,11 +59,14 @@ def main():
         for i in range(len(boxes)):
             if i in indexes:
                 x, y, w, h = boxes[i]
-                label = str(classes[class_ids[i]])
-                confidence = confidences[i]
-                color = (0, 255, 0)
-                cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
-                cv2.putText(frame, f'{label} {confidence:.2f}', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                if class_ids[i] < len(classes):
+                    label = str(classes[class_ids[i]])
+                    confidence = confidences[i]
+                    color = (0, 255, 0)
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+                    cv2.putText(frame, f'{label} {confidence:.2f}', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                else:
+                    print(f"Warning: Detected class_id {class_ids[i]} is out of range for classes list.")
 
         # 显示结果
         cv2.imshow("Insect Detection", frame)

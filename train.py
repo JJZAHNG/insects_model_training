@@ -32,6 +32,23 @@ validation_generator = validation_datagen.flow_from_directory(
     class_mode='categorical'
 )
 
+# 将 DirectoryIterator 转换为 tf.data.Dataset
+train_dataset = tf.data.Dataset.from_generator(
+    lambda: train_generator,
+    output_signature=(
+        tf.TensorSpec(shape=(None, 128, 128, 3), dtype=tf.float32),
+        tf.TensorSpec(shape=(None, len(train_generator.class_indices)), dtype=tf.float32)
+    )
+).repeat()
+
+validation_dataset = tf.data.Dataset.from_generator(
+    lambda: validation_generator,
+    output_signature=(
+        tf.TensorSpec(shape=(None, 128, 128, 3), dtype=tf.float32),
+        tf.TensorSpec(shape=(None, len(validation_generator.class_indices)), dtype=tf.float32)
+    )
+).repeat()
+
 # 加载预训练模型
 base_model = MobileNetV2(input_shape=(128, 128, 3), include_top=False, weights='imagenet')
 base_model.trainable = False  # 冻结预训练模型的权重
@@ -42,16 +59,16 @@ model = Sequential([
     GlobalAveragePooling2D(),
     Dense(128, activation='relu'),
     Dropout(0.5),
-    Dense(train_generator.num_classes, activation='softmax')
+    Dense(len(train_generator.class_indices), activation='softmax')
 ])
 
 model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
 
 # 训练模型
 model.fit(
-    train_generator,
+    train_dataset,
     steps_per_epoch=train_generator.samples // train_generator.batch_size,
-    validation_data=validation_generator,
+    validation_data=validation_dataset,
     validation_steps=validation_generator.samples // validation_generator.batch_size,
     epochs=10
 )
